@@ -1,0 +1,227 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta http-equiv="Content-Security-Policy" content="default-src * data:; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'">
+  <script src="components/loader.js"></script>
+  <script src="lib/angular/angular.min.js"></script>
+  <script src="lib/onsenui/js/onsenui.min.js"></script>
+  <script src="lib/onsenui/js/angular-onsenui.min.js"></script>
+  <script src="js/app.js"></script>
+  <!-- Google Maps APIkeyの設定と初期化 -->
+  <!-- <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDwykUmdmK4To700F3JrIg9Gz8hos-_9UM&sensor=false&v=3&libraries=geometry" type="text/javascript"></script> -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNmVsgRArSFR3Z9sEB5a-2T5L_lz_PluA&sensor=false&v=3&libraries=geometry" type="text/javascript"></script>
+
+  <link rel="stylesheet" href="components/loader.css">
+  <link rel="stylesheet" href="lib/onsenui/css/onsenui.css">
+  <link rel="stylesheet" href="lib/onsenui/css/onsen-css-components.css">
+  <link rel="stylesheet" href="css/style.css">
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOMContentLoaded');
+    }, false);
+
+    window.addEventListener('load', function() {
+        console.log('load');
+        checkCurrentUser();
+    }, false);
+
+    document.addEventListener('deviceready', function() {
+        console.log('deviceready');
+    }, false);  
+
+    document.addEventListener('init', function(event) {
+         // event.target ＝ <ons-page> 要素
+        if (event.target.matches('#login_page')) {
+            console.log('init_login_page');
+        }
+        if (event.target.matches('#reg_page')) {
+            console.log('init_reg_page');
+        }
+        if (event.target.matches('#home_page')) {
+            console.log('init_home_page');
+        }
+        if (event.target.matches('#menu_page')) {
+            console.log('init_menu_page');
+        }
+        if (event.target.matches('#checkin_page')) {
+            console.log('init_checkin_page');
+            loadCheckinPage();
+        }
+        if (event.target.matches('#map_page')) {
+            console.log('init_map_page');
+            // 画面サイズを取得して地図サイズを設定
+            
+            var element = document.getElementById("map_canvas");
+            //element.style.height = window.parent.screen.height*0.5;
+            element.style.height = "400px"
+            element.style.width = "100%"
+            
+            // 現在地を取得して地図を表示
+            showMap();
+        }
+        if (event.target.matches('#chckinlist_page')) {
+            console.log('init_chckinlist_page');
+        }
+
+    }, false);  
+
+    ons.bootstrap()
+    ons.ready(function() {
+        console.log("Onsen UI is ready!");
+    });
+  </script>
+</head>
+<body>
+    <!-- アプリ全体をナビゲーションでページ管理を行う -->
+    <ons-navigator var="navi" page="login.html">
+    </ons-navigator> 
+     
+    <!-- ナビゲーション管理下のページ -->
+    <ons-template id="login.html">
+        <ons-page id="login_page">
+            <ons-toolbar>
+                <div class="center">ログイン</div>
+            </ons-toolbar>
+ 
+            <div style="text-align: center">
+                <br>
+                ユーザー名<br>
+                <input type="text" id="user_name"/>
+                <br>
+                <br>
+                パスワード<br>
+                <input type="password" id="password"/>
+                <br>
+                <br>
+                <ons-button onclick="userLogin(false)">
+                    ログイン
+                </ons-button>
+                <ons-button onclick="userLogin(true)">
+                    新規登録
+                </ons-button>
+                <span id="login_error_msg"></span>
+            </div>
+        </ons-page>
+    </ons-template>
+
+    <!-- ナビゲーション管理下のページ -->
+    <ons-template id="home.html">
+        <ons-page id="home_page">
+            <ons-sliding-menu var="slidingMenu"
+                              menu-page="menu.html"
+                              main-page="map.html"
+                              swipeable="false">
+            </ons-sliding-menu>
+        </ons-page>
+    </ons-template>
+ 
+    <!-- 左に位置するメニューページ -->
+    <ons-template id="menu.html">
+        <ons-page id="menu_page">
+            <ons-list>
+                <ons-list-item modifier="tappable" onclick="slidingMenu.setMainPage('map.html', {closeMenu: true})">マップ</ons-list-item>
+                <ons-list-item modifier="tappable" onclick="slidingMenu.setMainPage('checkinlist.html', {closeMenu: true})">リスト</ons-list-item>
+                <ons-list-item modifier="tappable" onclick="logout()")>ログアウト</ons-list-item>
+            </ons-list>
+        </ons-page>
+    </ons-template>
+     
+    <!-- 右に位置するメインページ -->
+    <!-- スライディングメニューを構成するが、ナビゲーションの管理下でもある -->
+    <ons-template id="checkin.html">
+        <ons-page id="checkin_page">
+            <ons-toolbar>
+                <div class="center">チェックイン</div>
+            </ons-toolbar>
+                <form name="checkinfrm">
+                    <div style="text-align: center">
+                      <table>
+                          <tr>
+                            <td><small>緯度</small></td><td><input readonly type="text" size="13%" name="lat"></td>
+                            <td>　</td>
+                            <td><small>経度</td><td><input readonly type="text" size="13%" name="lng"></td>
+                          </tr>
+                      </table>
+                        タイトル<br>
+                        <input type="text" id="title"/>
+                        <br>
+                        <br>
+                        コメント<br>
+                        <input type="text" id="comment"/>
+                        <br>
+                        <br>
+                        <ons-button onclick="regCheckin()">
+                            チェックイン
+                        </ons-button>
+                        <ons-button onclick="navi.popPage()">
+                            キャンセル
+                        </ons-button>
+                    </div>
+                </form>
+        </ons-page>
+    </ons-template>
+
+    <ons-template id="map.html">
+        <ons-page id="map_page">
+            <ons-toolbar>
+                <div class="left">
+                  <ons-toolbar-button onclick="slidingMenu.toggle()">
+                    <ons-icon icon="md-menu"></ons-icon>
+                  </ons-toolbar-button>
+                </div>
+                <div class="center">マップ</div>
+            </ons-toolbar>
+            <section data-role="content">
+              <!--Map show-->
+              <div data-role="content" id="mapArea">
+                <form name="gps">
+                  <table>
+                    <center>
+                      <tr>
+                        <td><small>緯度</small></td><td><input readonly type="text" size="13%" name="lat"></td>
+                        <td>　</td>
+                        <td><small>経度</td><td><input readonly type="text" size="13%" name="lng"></td>
+                      </tr>
+                    </center>
+                  </table>
+                </form>
+                <div id="map_canvas" style="height:300px;width:100%"></div>
+                <center>
+                  <div>
+                     <ons-button onclick="showCheckinPage()">
+                        チェックイン
+                    </ons-button>
+                  </div>
+                </div>
+              </div>
+              
+            </section>
+
+    
+</ons-page>
+    </ons-template>
+
+    <ons-template id="checkinlist.html">
+        <ons-page id="chckinlist_page">
+            <ons-toolbar>
+                <div class="left">
+                  <ons-toolbar-button onclick="slidingMenu.toggle()">
+                    <ons-icon icon="md-menu"></ons-icon>
+                  </ons-toolbar-button>
+                </div>
+                <div class="center">チェックインリスト</div>
+            </ons-toolbar>
+                <ons-button onclick="navi.pushPage('checkin.html')">
+                    チェックイン
+                </ons-button>
+            <div style="text-align: center">
+            </div>
+        </ons-page>
+    </ons-template>
+
+
+</body>
+</html>
